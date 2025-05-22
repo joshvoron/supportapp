@@ -1,0 +1,62 @@
+services:
+  django:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - app_net
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - django
+    networks:
+      - app_net
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: ./bot
+    env_file:
+      - .env
+    depends_on:
+      - django
+    networks:
+      - app_net
+    restart: unless-stopped
+  
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - app_net
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_net
+    restart: unless-stopped
+
+volumes:
+  redis_data: {}
+  pg_data: {}
+
+networks: 
+  app_net:
+    driver: bridge
